@@ -4112,6 +4112,97 @@ pre.diff .del {
     }
 }
 
+/* Tag filters share the real search field; its clear and launcher controls stay independent. */
+.search-filters {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 28px;
+    padding: 0 7px;
+    border-left: 1px solid var(--hair);
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.search-filters.on {
+    color: var(--accent);
+}
+
+.session-applied-tags,
+.session-tags,
+.tag-draft,
+.tag-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.session-applied-tags {
+    flex: none;
+    padding: 8px 2px 2px;
+}
+
+.session-applied-tags .chip,
+.session-tags .chip,
+.tag-draft .chip,
+.tag-suggestions .chip {
+    min-height: 28px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.session-applied-tags .chip > span,
+.tag-draft .chip > span {
+    min-width: 0;
+}
+
+.session-applied-tags .icon,
+.tag-draft .icon {
+    flex: none;
+}
+
+.tag-clear {
+    padding: 5px;
+    color: var(--muted);
+    font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.tag-result {
+    margin-inline-start: auto;
+    white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+    .session-applied-tags .chip,
+    .session-tags .chip,
+    .tag-draft .chip,
+    .tag-suggestions .chip,
+    .tag-clear {
+        min-height: 40px;
+        min-width: 44px;
+    }
+    .search-filters {
+        position: relative;
+        min-height: 40px;
+        border-left-color: transparent;
+    }
+    .search-filters::before {
+        content: "";
+        position: absolute;
+        left: -1px;
+        top: 8px;
+        bottom: 8px;
+        border-left: 1px solid var(--hair);
+    }
+}
+
 /* Touch screens have no Ctrl K: the launcher's button takes its place. */
 .search-launcher {
     position: relative;
@@ -4328,9 +4419,23 @@ pre.diff .del {
 
 .session-row {
     position: relative;
-    padding-inline-start: calc(var(--linked-depth, 0) * 14px);
+    isolation: isolate;
+    padding-inline-start: calc(var(--linked-depth, 0) * var(--linked-step, 14px));
     animation: rise-in 0.38s var(--ease-out) backwards;
     animation-delay: calc(min(var(--i, 0), 14) * 18ms);
+}
+
+/* One continuous item fill, including sibling actions and tags, without joining their click targets. */
+.session-row::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    inset-inline-start: calc(var(--linked-depth, 0) * var(--linked-step, 14px));
+    z-index: -1;
+    border: 1px solid transparent;
+    border-radius: var(--r-row);
+    pointer-events: none;
+    transition: background-color var(--t-hover) var(--ease-out);
 }
 
 /*
@@ -4396,8 +4501,12 @@ pre.diff .del {
     transition: background-color var(--t-hover) var(--ease-out);
 }
 
+.session-content {
+    display: contents;
+}
+
 @media (hover: hover) {
-    .session:hover {
+    .session-row:hover::before {
         background: var(--hover);
     }
 }
@@ -4409,7 +4518,7 @@ pre.diff .del {
 }
 
 /* The open session: the accent's soft fill, and its title in bold. */
-.session-row.active .session {
+.session-row.active::before {
     background: var(--accent-soft);
 }
 
@@ -4418,13 +4527,13 @@ pre.diff .del {
 }
 
 /* Selected rows (Ctrl/⌘+click or drag, Shift+click): the soft fill, a border, and a check for the folder's mark. */
-.session-row.selected .session {
+.session-row.selected::before {
     background: var(--accent-soft);
     border-color: var(--accent-line);
 }
 
 /* A finger held on a row, before its actions open: after the open and selected rows' fills, so it shows on them too. */
-.session-row.pressing .session {
+.session-row.pressing::before {
     background: var(--hover);
 }
 
@@ -4717,8 +4826,30 @@ pre.diff .del {
     display: none;
 }
 
-/* Archive, pin, and mark unread: on the row's right, shown on hover or while the row has focus. */
+/* Named tags are siblings of the row-open button, never nested controls or a new action gutter. */
+.session-tags {
+    padding: 4px 10px 6px 29px;
+}
+
+.session-tags .chip {
+    padding: 2px 7px;
+    border-radius: var(--r-tag);
+    color: var(--muted);
+    font-size: 11.5px;
+}
+
+.session-row.selected .session-tags .chip {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+}
+
+.session-row.has-tags .session-actions {
+    top: calc((24px + 12px * var(--space-y)) / 2);
+}
+
+/* Edit tags, archive, pin, and mark unread: native hover/focus actions on the row's right. */
 .session-actions {
+    pointer-events: none;
     position: absolute;
     top: 50%;
     right: 6px;
@@ -4737,6 +4868,7 @@ pre.diff .del {
     border: 1px solid var(--hair);
     border-radius: var(--r-seg);
     opacity: 0;
+    pointer-events: none;
     transform: translateX(4px);
     transition:
         opacity var(--t-hover) var(--ease-out),
@@ -4771,11 +4903,12 @@ pre.diff .del {
     }
 }
 
-/* The buttons take the right side's place, widened so a long title ends before them (one to three 26px buttons). */
+/* The buttons take the right side's place, widened so a long title ends before them. */
 @media (hover: hover) {
     .session-row:hover .session-act,
     .session-act:focus-visible {
         opacity: 1;
+        pointer-events: auto;
         transform: none;
     }
     .session-row:not(.no-acts):hover .session-side {
@@ -4793,6 +4926,7 @@ pre.diff .del {
        from the rules above: a browser without :has() drops only these. */
     .session-row:has(:focus-visible) .session-act {
         opacity: 1;
+        pointer-events: auto;
         transform: none;
     }
     .session-row:not(.no-acts):has(:focus-visible) .session-side {
@@ -4808,10 +4942,76 @@ pre.diff .del {
     /* While Ctrl/⌘ drags a selection, rows do not show their buttons. */
     :root.selecting .session-row .session-act {
         opacity: 0;
+        pointer-events: none;
     }
     :root.selecting .session-row .session-side {
         opacity: 1;
         min-width: 0;
+    }
+}
+
+/* Keep the opening button's bounds stable, so moving to click never puts Archive under its center.
+   Its child line extends across the idle row (including hit testing), and yields only visual space
+   when actions appear. The item fill stays full width without a permanent blank title gutter. */
+@media (hover: hover) {
+    .session-row.tags-editable {
+        --linked-step: clamp(0px, calc((100cqw - 180px) * 0.28), 14px);
+    }
+    .session-row.tags-editable .session-branches > span {
+        width: var(--linked-step);
+    }
+    .session-row.tags-editable .session-branches > .elbow::after {
+        width: min(8px, var(--linked-step));
+    }
+    @container sessions (max-width: 180px) {
+        .session-row.tags-editable .session-branches {
+            visibility: hidden;
+        }
+    }
+    .session-row.tags-editable .session {
+        width: calc(100% - 66px);
+    }
+    .session-row.four-acts .session {
+        width: calc(100% - 126px);
+    }
+    .session-row.tags-editable .session-content {
+        position: absolute;
+        top: 0;
+        inset-inline-start: calc(var(--linked-depth, 0) * var(--linked-step));
+        right: 0;
+        display: grid;
+        grid-template-columns: 8px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0 11px;
+        height: inherit;
+        padding: inherit;
+        border: inherit;
+    }
+    .session-row.tags-editable:is(:hover, :has(:focus-visible)) .session-content {
+        right: 66px;
+        grid-template-columns: 8px minmax(0, 1fr);
+    }
+    .session-row.four-acts:is(:hover, :has(:focus-visible)) .session-content {
+        right: 126px;
+    }
+    .session-row.tags-editable:is(:hover, :has(:focus-visible)) .session-side {
+        position: absolute;
+        top: calc((24px + 12px * var(--space-y)) / 2);
+        right: 10px;
+        transform: translateY(-50%);
+        min-width: 0;
+        pointer-events: none;
+    }
+    :root.selecting .session-row.tags-editable .session {
+        width: 100%;
+    }
+    :root.selecting .session-row.tags-editable .session-content {
+        right: 0;
+        grid-template-columns: 8px minmax(0, 1fr) auto;
+    }
+    :root.selecting .session-row.tags-editable .session-side {
+        position: static;
+        transform: none;
     }
 }
 
@@ -4838,6 +5038,7 @@ pre.diff .del {
 .select-bar {
     container-type: inline-size;
     flex: none;
+    flex-wrap: wrap;
     margin-top: 6px;
     display: flex;
     align-items: center;
@@ -4865,7 +5066,7 @@ pre.diff .del {
 }
 
 /* A narrow bar (a narrow list, or larger text) shows just the count, so the buttons fit. */
-@container (max-width: 14rem) {
+@container (max-width: 22rem) {
     .select-word {
         display: none;
     }
@@ -4900,11 +5101,44 @@ pre.diff .del {
 @media (pointer: coarse) {
     .select-bar .button {
         min-height: 36px;
-        padding-inline: 0.8rem;
+        padding-inline: 0.6rem;
     }
     .select-clear {
         width: 36px;
         height: 36px;
+    }
+}
+
+/* In the narrow sidebar/phone list, keep count and clear together above the three batch actions. */
+@container sessions (max-width: 18rem) {
+    .select-bar {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        padding: 6px;
+    }
+    .select-count {
+        grid-column: 1 / 3;
+        grid-row: 1;
+    }
+    .select-word {
+        display: inline;
+    }
+    .select-clear {
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+    }
+    .select-bar .button {
+        grid-row: 2;
+        min-width: 0;
+        gap: 3px;
+        padding-inline: 3px;
+    }
+}
+
+@container sessions (max-width: 14rem) {
+    .select-bar .button .icon {
+        display: none;
     }
 }
 
@@ -4913,6 +5147,11 @@ pre.diff .del {
     color: var(--muted);
     font-size: 0.85rem;
     animation: fade var(--t-fade) var(--ease-almost);
+}
+
+.sessions-empty .button {
+    display: block;
+    margin-top: 12px;
 }
 
 /* A session row's shape while the list loads: a title bar, pulsing one row after another. */
@@ -5799,6 +6038,215 @@ pre.diff .del {
 .sheet-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Personal tag filters keep choices bounded and actions outside their scrolling content. */
+.session-tag-filter-sheet .sheet-body {
+    overflow: hidden;
+}
+
+.tag-filter-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: calc(14px * var(--space-y));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: -3px;
+    padding: 3px;
+}
+
+.tag-filter-content > * {
+    flex-shrink: 0;
+}
+
+.tag-filter-content > .tag-filter-results {
+    flex: 1 1 196px;
+    min-height: 44px;
+    max-height: min(196px, 28dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.tag-filter-results > .list-item {
+    min-height: 44px;
+    padding-block: 8px;
+}
+
+.tag-filter-results > .marked {
+    background: var(--accent-soft);
+}
+
+.tag-filter-content > .tag-filter-pending {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    min-height: 60px;
+    gap: 6px;
+}
+
+.tag-filter-selected {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 40px;
+    max-height: 80px;
+    overflow-y: auto;
+    scroll-padding: 3px;
+    padding: 3px;
+    margin: -3px;
+}
+
+.tag-filter-selected .chip {
+    min-height: 40px;
+    max-width: 100%;
+}
+
+.tag-filter-selected .chip > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.tag-filter-footer {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    gap: calc(14px * var(--space-y));
+    padding-top: 12px;
+    border-top: 1px solid var(--hair);
+}
+
+/* Tag editing uses the standard sheet fields/actions. Only Save sends an explicit patch. */
+.tag-add {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    min-width: 0;
+}
+
+.tag-add input {
+    flex: 1;
+    min-width: 0;
+}
+
+.tag-options .list-item > span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.tag-remove-options .list-item > .tag-membership {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 2px 8px;
+    flex: 1;
+}
+
+.tag-membership > small:not(.tag-remove-intent) {
+    white-space: nowrap;
+}
+
+.tag-remove-intent {
+    grid-column: 1 / -1;
+    color: var(--accent);
+}
+
+.tag-remove-options {
+    max-height: min(196px, 28dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.tag-remove-options > .list-item {
+    min-height: 44px;
+    padding-block: 8px;
+}
+
+.tag-remove-options > .marked {
+    background: var(--accent-soft);
+}
+
+.tag-empty {
+    padding: 12px 14px;
+}
+
+.session-tags-sheet .sheet-body {
+    overflow: hidden;
+}
+
+.session-tags-sheet .tag-editor-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: calc(14px * var(--space-y));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Leave space for native input and button focus rings at the scroll edges. */
+    margin: -3px;
+    padding: 3px;
+}
+
+.tag-editor-content > * {
+    flex-shrink: 0;
+}
+
+.tag-remove-pending {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tag-remove-draft {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 80px;
+    overflow-y: auto;
+    scroll-padding: 3px;
+    padding: 3px;
+    margin: -3px;
+}
+
+.tag-remove-draft .chip {
+    min-height: 40px;
+    max-width: 100%;
+}
+
+.tag-remove-draft .chip > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.session-tags-sheet .tag-suggestion-hint {
+    margin-top: -8px;
+}
+
+.tag-options input {
+    flex: none;
+}
+
+.tag-suggestions:empty,
+.tag-draft:empty,
+.tag-error:empty {
+    display: none;
+}
+
+.tag-error {
+    color: var(--err);
+}
+
+.tag-save {
+    flex: none;
+    padding-block: 8px 1px;
+    background: var(--bg);
+    border-top: 1px solid var(--hair);
+    display: flex;
+    flex-direction: column;
     gap: 8px;
 }
 
@@ -8568,6 +9016,56 @@ textarea.notes {
     font-family: var(--mono);
 }
 
+/* Tag-only matches explain themselves beside the folder, without adding a row or competing with status. */
+.launcher-tag-reason {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: calc(100% - 36px);
+    white-space: nowrap;
+}
+
+.launcher-tag-name {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.launcher-tag-context {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.launcher-tag-hit {
+    flex: 0 0 auto;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.launcher-item .detail:has(.launcher-tag-reason) .launcher-path {
+    min-width: 28px;
+}
+
+.launcher-tag-folder-short {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .launcher-tag-folder-full {
+        display: none;
+    }
+
+    .launcher-tag-folder-short {
+        display: block;
+    }
+}
+
 .launcher-state {
     flex: none;
     max-width: 50%;
@@ -9129,10 +9627,36 @@ textarea.notes {
     opacity: 0;
 }
 
-/* A narrow list keeps the search's words whole: its keys give way. */
-@container sessions (max-width: 200px) {
+/* Make room for the search's words before optional keys or Filters wording. These widths
+ * measure the list's content, not the sidebar, which also includes the rail and padding. */
+@container sessions (max-width: 300px) {
     .search-keys {
         display: none;
+    }
+    .search-filters {
+        padding-inline: 4px;
+    }
+}
+
+@container sessions (max-width: 216px) {
+    .sessions .search {
+        gap: 4px;
+        padding-inline: 6px;
+    }
+    .search-filter-label {
+        display: none;
+    }
+}
+
+@media (pointer: coarse) {
+    @container sessions (max-width: 256px) {
+        .search-filter-label {
+            display: none;
+        }
+        .search-filters {
+            min-width: 40px;
+            justify-content: center;
+        }
     }
 }
 
